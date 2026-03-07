@@ -13,8 +13,11 @@ const currentMessages = computed(() => {
   return session ? session.messages : [];
 });
 
-onMounted(() => {
-  loadSessions();
+onMounted(async () => {
+  await loadSessions();
+  if (sessions.value.length && selectedSessionId.value === null) {
+    selectedSessionId.value = sessions.value[0].id;
+  }
 });
 
 async function send() {
@@ -22,10 +25,14 @@ async function send() {
   loading.value = true;
   const sessionId = selectedSessionId.value ?? (await createSession());
   await addMessage(sessionId, { role: "user", content: newMessage.value });
-  // Call LM Studio API and store response
-  const completion = await getChatCompletion([{ role: "user", content: newMessage.value }]);
-  const assistantMsg = completion.choices?.[0]?.message || { role: "assistant", content: "" };
-  await addMessage(sessionId, assistantMsg);
+  try {
+    const completion = await getChatCompletion([{ role: "user", content: newMessage.value }]);
+    const assistantMsg = completion.choices?.[0]?.message || { role: "assistant", content: "" };
+    await addMessage(sessionId, assistantMsg);
+  } catch (e) {
+    console.error("Chat API error", e);
+    await addMessage(sessionId, { role: "assistant", content: "Error fetching response." });
+  }
   selectedSessionId.value = sessionId;
   newMessage.value = "";
   loading.value = false;
@@ -55,21 +62,21 @@ async function send() {
           <strong>{{ m.role }}:</strong> {{ m.content }}
         </li>
       </ul>
-      <div class="flex space-x-2 mt-4">
-        <input
-          v-model="newMessage"
-          type="text"
-          placeholder="Type a message…"
-          class="flex-1 border rounded px-3 py-2 bg-gray-50 dark:bg-gray-700"
-        />
-        <button
-          @click="send"
-          :disabled="loading || !newMessage"
-          class="px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          Send
-        </button>
-      </div>
+    </div>
+    <div class="flex space-x-2 mt-4">
+      <input
+        v-model="newMessage"
+        type="text"
+        placeholder="Type a message…"
+        class="flex-1 border rounded px-3 py-2 bg-gray-50 dark:bg-gray-700"
+      />
+      <button
+        @click="send"
+        :disabled="loading || !newMessage"
+        class="px-4 py-2 bg-blue-600 text-white rounded"
+      >
+        Send
+      </button>
     </div>
   </div>
 </template>
