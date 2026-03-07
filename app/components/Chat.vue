@@ -1,9 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { getChatCompletion } from "@/services/lmStudio";
+import { availableModels, selectedModel, fetchModels } from "@/services/lmStudio";
 import { useChatStore } from "@/composables/useChatStore";
+import { getChatCompletion } from "@/services/lmStudio";
 
 const { sessions, createSession, addMessage, loadSessions } = useChatStore();
+// Reactive list of available models
+const modelKeys = availableModels;
+const selectedModelKey = selectedModel;
+
+onMounted(async () => {
+  await loadSessions();
+  if (sessions.value.length && selectedSessionId.value === null) {
+    selectedSessionId.value = sessions.value[0].id;
+  }
+  await fetchModels(); // populate dropdown on mount
+});
+
 const newMessage = ref("");
 const loading = ref(false);
 const selectedSessionId = ref<number | null>(null);
@@ -13,12 +26,7 @@ const currentMessages = computed(() => {
   return session ? session.messages : [];
 });
 
-onMounted(async () => {
-  await loadSessions();
-  if (sessions.value.length && selectedSessionId.value === null) {
-    selectedSessionId.value = sessions.value[0].id;
-  }
-});
+
 
 async function send() {
   if (!newMessage.value) return;
@@ -53,7 +61,15 @@ async function send() {
       </li>
     </ul>
     <div v-if="selectedSessionId !== null">
-      <ul class="space-y-2 mb-4">
+<ul class="space-y-2 mb-4">
+  <li>
+    <label for="model-select" class="block text-sm font-medium mb-1">Select Model</label>
+    <select id="model-select" v-model="selectedModelKey" class="w-full border rounded px-3 py-2 bg-gray-50 dark:bg-gray-700">
+      <option disabled value="">-- Choose a model --</option>
+      <option v-for="key in modelKeys" :key="key" :value="key">{{ key }}</option>
+    </select>
+  </li>
+
         <li
           v-for="(m, idx) in currentMessages"
           :key="idx"
