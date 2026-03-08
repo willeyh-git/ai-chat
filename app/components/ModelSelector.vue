@@ -8,14 +8,17 @@ const props = defineProps<{
 
 const isOpen = props.showModelSelector;
 const searchQuery = ref("");
+const modelSearchQuery = ref("");
 const emit = defineEmits<{
   select: [model: string];
   "update:model-search": [query: string];
+  update: [];
 }>();
 
 const filteredModels = computed(() => {
-  if (!searchQuery.value) return availableModels.value;
-  const search = searchQuery.value.toLowerCase().trim();
+  const query = modelSearchQuery.value || searchQuery.value;
+  if (!query) return availableModels.value;
+  const search = query.toLowerCase().trim();
   return availableModels.value.filter((key) => key.toLowerCase().includes(search));
 });
 
@@ -24,14 +27,23 @@ const isCurrentlySelected = computed(() => {
   return selectedKey;
 });
 
+function handleSearch() {
+  emit("update:model-search", modelSearchQuery.value);
+}
+
+function handleSelect(model: string) {
+  emit("select", model);
+}
+
 
 </script>
 
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div @click="emit('update', '')" class="fixed inset-0 bg-black/50 transition-opacity" />
-    <div
-      class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 max-h-[70vh] flex flex-col"
+<div
+  class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 max-h-[70vh] flex flex-col"
+  @click="emit('update', '')"
     >
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-4">
@@ -42,7 +54,7 @@ const isCurrentlySelected = computed(() => {
         </div>
         <div class="relative">
           <input
-            v-model="searchQuery"
+            v-model="modelSearchQuery"
             type="text"
             :placeholder="
               !isCurrentlySelected
@@ -50,6 +62,7 @@ const isCurrentlySelected = computed(() => {
                 : 'Search models... (use arrow keys to navigate)'
             "
             @input="handleSearch"
+            @blur="handleSearch"
             class="w-full px-4 py-2 pl-10 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           />
           <svg
@@ -122,7 +135,7 @@ const isCurrentlySelected = computed(() => {
           @click="emit('update', '')"
           class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
         >
-          Cancel
+          Close
         </button>
       </div>
     </div>

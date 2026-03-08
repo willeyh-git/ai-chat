@@ -127,12 +127,15 @@ async function send() {
     <ModelSelector
       v-if="showModelSelector && modelsLoaded"
       v-model:showModelSelector="showModelSelector"
-      :availableModels="filteredModels"
+      :availableModels="availableModels"
+      :model-search="modelSearch"
       @select="
         (model) => {
           selectedModel = model;
+          modelSearch = '';
         }
       "
+      @update:model-search="modelSearch = $event"
     >
     </ModelSelector>
   </div>
