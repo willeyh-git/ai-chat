@@ -99,7 +99,6 @@ async function send() {
   :loading="loading"
   v-model:showModelSelector="showModelSelector"
   @send="send"
-  @toggleModelSelector="showModelSelector = !showModelSelector"
 />
       </div>
 

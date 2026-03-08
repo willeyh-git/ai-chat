@@ -2,12 +2,13 @@
 import { useChatStore } from "@/composables/useChatStore";
 
 
-const emit = defineEmits(["send", "toggleModelSelector"]);
+const emit = defineEmits(["send", "update"]);
 
 const { selectedModel } = useChatStore();
 
 interface Props {
   loading: boolean;
+  showModelSelector?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -18,7 +19,7 @@ function handleSend() {
 }
 
 function toggleModelSelector() {
-  emit("toggleModelSelector");
+  emit("update", !props.showModelSelector);
 }
 </script>
 
