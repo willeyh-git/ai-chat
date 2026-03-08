@@ -10,11 +10,24 @@ const props = defineProps<{
 
 const messagesEndRef = ref<HTMLElement>(null);
 
+const scrollRef = ref<HTMLElement | null>(null);
+
+// Track when messages change to scroll to bottom
+let isWatching = false;
+
 watch(
   () => props.messages,
   () => {
+    // Only start watching once to avoid triggering on initial mount
+    if (!isWatching) {
+      isWatching = true;
+    }
+
     nextTick(() => {
-      scrollRef.value?.scrollIntoView({ behavior: "smooth" });
+      // Use scrollIntoView with block: "end" to ensure element is at bottom
+      if (scrollRef.value) {
+        scrollRef.value.scrollIntoView({ block: "end", behavior: "smooth" });
+      }
     });
   },
 );

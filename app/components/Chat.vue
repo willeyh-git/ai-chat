@@ -75,7 +75,11 @@ async function send() {
 
 <template>
   <div class="w-full h-screen bg-gray-100 dark:bg-gray-900 flex">
-    <MobileHeader />
+    <MobileHeader
+      :showModelSelector="showModelSelector"
+      :isMobileMenuOpen="isMobileMenuOpen"
+      @toggle="toggleMobileMenu"
+    />
 
     <SessionSidebar
       :sessions="sessions"
@@ -89,7 +93,7 @@ async function send() {
     <main class="flex-1 flex flex-col h-full">
       <MessagesContainer :messages="currentMessages" :messagesEndRef="messagesEndRef" />
 
-      <div v-if="selectedSessionId !== null" class="flex-1 flex flex-col h-full overflow-hidden">
+      <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
         <InputArea
           v-model="newMessage"
           :loading="loading"

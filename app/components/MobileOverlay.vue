@@ -1,5 +1,9 @@
 <script setup lang="ts">
-const isOpen = defineModel<boolean>({ default: false });
+const props = defineProps<{
+  isOpen?: boolean;
+}>();
+
+const emit = defineEmits<{ close: [] }>();
 </script>
 
 <template>

@@ -10,7 +10,7 @@ const emit = defineEmits<{ menuToggle: []; sessionSelect: [id: number] }>();
 
 <template>
   <aside
-    class="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300 ease-in-out flex flex-col absolute md:relative z-0 h-full md:h-screen"
+    class="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300 ease-in-out flex flex-col absolute md:relative z-0 h-full md:h-screen md:z-10"
   >
     <div
       class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"

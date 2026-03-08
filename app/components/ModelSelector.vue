@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { availableModels, selectedModel } from "@/services/lmStudio";
 
-const isOpen = defineModel<boolean>({ default: false });
+const props = defineProps<{
+  showModelSelector?: boolean;
+  isMobileMenuOpen?: boolean;
+}>();
+
+const isOpen = props.showModelSelector;
 const searchQuery = ref("");
-const emit = defineEmits<{ select: [model: string] }>();
+const emit = defineEmits<{
+  select: [model: string];
+  "update:model-search": [query: string];
+}>();
 
 const filteredModels = computed(() => {
   if (!searchQuery.value) return availableModels.value;
@@ -16,14 +24,7 @@ const isCurrentlySelected = computed(() => {
   return selectedKey;
 });
 
-function handleSearch(e: Event) {
-  const target = e.target as HTMLInputElement;
-  emit("update", target.value);
-}
 
-function handleSelect(model: string) {
-  emit("select", model);
-}
 </script>
 
 <template>
