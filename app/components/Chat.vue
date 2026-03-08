@@ -91,9 +91,9 @@ async function send() {
     <MobileOverlay :isOpen="isMobileMenuOpen" @close="isMobileMenuOpen = false" />
 
     <main class="flex-1 flex flex-col h-full">
-      <MessagesContainer :messages="currentMessages" :messagesEndRef="messagesEndRef" />
-
       <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
+        <MessagesContainer :messages="currentMessages" :messagesEndRef="messagesEndRef" />
+
         <InputArea
           v-model="newMessage"
           :loading="loading"

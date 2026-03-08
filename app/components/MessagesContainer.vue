@@ -8,8 +8,6 @@ const props = defineProps<{
   messagesEndRef?: HTMLElement | null;
 }>();
 
-const messagesEndRef = ref<HTMLElement>(null);
-
 const scrollRef = ref<HTMLElement | null>(null);
 
 // Track when messages change to scroll to bottom
