@@ -3,14 +3,21 @@ import { ref } from "vue";
 import type { Message } from "@/composables/useChatStore";
 
 import { nextTick, watch } from "vue";
-const messages = ref<Message[]>([]);
-const scrollRef = ref<HTMLElement>(null);
+const props = defineProps<{
+  messages: Message[];
+  messagesEndRef?: HTMLElement | null;
+}>();
 
-watch(messages, () => {
-  nextTick(() => {
-    scrollRef.value?.scrollIntoView({ behavior: 'smooth' });
-  });
-});
+const messagesEndRef = ref<HTMLElement>(null);
+
+watch(
+  () => props.messages,
+  () => {
+    nextTick(() => {
+      scrollRef.value?.scrollIntoView({ behavior: "smooth" });
+    });
+  },
+);
 </script>
 
 <template>

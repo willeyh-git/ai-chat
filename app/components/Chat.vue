@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
 import { availableModels, selectedModel, fetchModels } from "@/services/lmStudio";
 import { useChatStore } from "@/composables/useChatStore";
 import { getChatCompletion } from "@/services/lmStudio";
+
+// Props removed – component now uses local refs and emits only
 
 const { sessions, createSession, addMessage, loadSessions } = useChatStore();
 const newMessage = ref("");
@@ -37,8 +38,8 @@ const currentMessages = computed(() => {
 
 onMounted(async () => {
   await loadSessions();
-  if (sessions.value.length && selectedSessionId.value === null) {
-    selectedSessionId.value = sessions.value[0].id;
+  if (sessions.value.length && selectedSessionId.value === null && sessions.value[0]) {
+    selectedSessionId.value = sessions.value[0].id === undefined ? null : sessions.value[0].id;
   }
   await fetchModels();
   modelsLoaded.value = true;
@@ -76,13 +77,12 @@ async function send() {
   <div class="w-full h-screen bg-gray-100 dark:bg-gray-900 flex">
     <MobileHeader />
 
-<SessionSidebar
-          :sessions="sessions"
-          v-model:selectedSessionId="selectedSessionId"
-          @menu-toggle="toggleMobileMenu"
-          @session-select="updateSelectedSession"
-        />
-
+    <SessionSidebar
+      :sessions="sessions"
+      v-model:selectedSessionId="selectedSessionId"
+      @menu-toggle="toggleMobileMenu"
+      @session-select="updateSelectedSession"
+    />
 
     <MobileOverlay :isOpen="isMobileMenuOpen" @close="isMobileMenuOpen = false" />
 
@@ -120,12 +120,16 @@ async function send() {
       </div>
     </main>
 
-<ModelSelector
-          v-if="showModelSelector && modelsLoaded"
-          v-model:showModelSelector="showModelSelector"
-          :availableModels="filteredModels"
-          @select="(model)=>{ selectedModel.value = model; }">
-        </ModelSelector>
-
+    <ModelSelector
+      v-if="showModelSelector && modelsLoaded"
+      v-model:showModelSelector="showModelSelector"
+      :availableModels="filteredModels"
+      @select="
+        (model) => {
+          selectedModel = model;
+        }
+      "
+    >
+    </ModelSelector>
   </div>
 </template>

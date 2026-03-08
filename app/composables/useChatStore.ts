@@ -1,13 +1,12 @@
 import Dexie from "dexie";
 import { ref, computed } from "vue";
-import { useStorage } from "@vueuse/core";
 
 export interface Message {
   role: string;
   content: string;
 }
 
-interface ChatSession {
+export interface ChatSession {
   id?: number;
   createdAt: number;
   messages: Message[];
