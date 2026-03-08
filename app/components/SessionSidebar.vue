@@ -5,14 +5,11 @@ interface Session {
   messages: any[];
 }
 
-interface Props {
+const props = defineProps<{
   sessions: Session[];
   selectedSessionId: number | null;
-  onSessionSelect: (id: number) => void;
-  onMenuToggle: () => void;
-}
-
-defineProps<Props>();
+}>();
+const emit = defineEmits<{ menuToggle: []; sessionSelect: [id: number] }>();
 </script>
 
 <template>

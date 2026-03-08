@@ -76,12 +76,13 @@ async function send() {
   <div class="w-full h-screen bg-gray-100 dark:bg-gray-900 flex">
     <MobileHeader />
 
-    <SessionSidebar
-      :sessions="sessions"
-      :selectedSessionId="selectedSessionId"
-      :onSessionSelect="updateSelectedSession"
-      :onMenuToggle="toggleMobileMenu"
-    />
+<SessionSidebar
+          :sessions="sessions"
+          v-model:selectedSessionId="selectedSessionId"
+          @menu-toggle="toggleMobileMenu"
+          @session-select="updateSelectedSession"
+        />
+
 
     <MobileOverlay :isOpen="isMobileMenuOpen" @close="isMobileMenuOpen = false" />
 
@@ -90,9 +91,10 @@ async function send() {
 
       <div v-if="selectedSessionId !== null" class="flex-1 flex flex-col h-full overflow-hidden">
         <InputArea
+          v-model="newMessage"
           :loading="loading"
-          :onSend="send"
-          :showModelSelector="showModelSelector"
+          @send="send"
+          v-model:showModelSelector="showModelSelector"
           @toggleModelSelector="showModelSelector = $event"
         />
       </div>
@@ -118,11 +120,12 @@ async function send() {
       </div>
     </main>
 
-    <ModelSelector
-      v-if="showModelSelector && modelsLoaded"
-      :showModelSelector="showModelSelector"
-      :availableModels="filteredModels"
-      :selectedModelKey="selectedModelKey"
-    />
+<ModelSelector
+          v-if="showModelSelector && modelsLoaded"
+          v-model:showModelSelector="showModelSelector"
+          :availableModels="filteredModels"
+          @select="(model)=>{ selectedModel.value = model; }">
+        </ModelSelector>
+
   </div>
 </template>

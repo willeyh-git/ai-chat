@@ -2,10 +2,15 @@
 import { ref } from "vue";
 import type { Message } from "@/composables/useChatStore";
 
-const messages = defineModel<Message[]>();
+import { nextTick, watch } from "vue";
+const messages = ref<Message[]>([]);
 const scrollRef = ref<HTMLElement>(null);
 
-defineExpose({ scrollRef });
+watch(messages, () => {
+  nextTick(() => {
+    scrollRef.value?.scrollIntoView({ behavior: 'smooth' });
+  });
+});
 </script>
 
 <template>

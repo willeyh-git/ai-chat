@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useChatStore } from "@/composables/useChatStore";
-import { availableModels } from "@/services/lmStudio";
+
 
 const emit = defineEmits(["send", "toggleModelSelector"]);
 

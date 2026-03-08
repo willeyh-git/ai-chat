@@ -1,15 +1,5 @@
 <script setup lang="ts">
-interface Props {
-  isOpen: boolean;
-}
-
-const props = defineProps<Props>();
-
-defineExpose({
-  close: () => {
-    props.isOpen = false;
-  },
-});
+const isOpen = defineModel<boolean>({ default: false });
 </script>
 
 <template>

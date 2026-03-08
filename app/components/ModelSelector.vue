@@ -1,17 +1,9 @@
 <script setup lang="ts">
 import { availableModels, selectedModel } from "@/services/lmStudio";
 
-interface Props {
-  isOpen: boolean;
-}
-
-const props = defineProps<Props>();
-const searchQuery = defineModel<string>({ default: "" });
-
-const emit = defineEmits<{
-  update: [query: string];
-  select: [model: string];
-}>();
+const isOpen = defineModel<boolean>({ default: false });
+const searchQuery = ref("");
+const emit = defineEmits<{ select: [model: string] }>();
 
 const filteredModels = computed(() => {
   if (!searchQuery.value) return availableModels.value;
