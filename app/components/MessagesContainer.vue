@@ -1,34 +1,42 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch, onMounted } from "vue";
 import type { Message } from "@/composables/useChatStore";
 
-import { nextTick, watch } from "vue";
 const props = defineProps<{
   messages: Message[];
   messagesEndRef?: HTMLElement | null;
 }>();
 
 const scrollRef = ref<HTMLElement | null>(null);
+let isScrolled = false;
 
-// Track when messages change to scroll to bottom
-let isWatching = false;
+// Scroll to bottom on initial mount
+onMounted(() => {
+  nextTick(() => {
+    scrollToBottom();
+  });
+});
 
+// Watch for message changes and scroll to bottom
 watch(
   () => props.messages,
   () => {
-    // Only start watching once to avoid triggering on initial mount
-    if (!isWatching) {
-      isWatching = true;
+    // Only watch once to avoid duplicate scrolls
+    if (!isScrolled) {
+      isScrolled = true;
     }
 
     nextTick(() => {
-      // Use scrollIntoView with block: "end" to ensure element is at bottom
-      if (scrollRef.value) {
-        scrollRef.value.scrollIntoView({ block: "end", behavior: "smooth" });
-      }
+      scrollToBottom();
     });
   },
 );
+
+function scrollToBottom() {
+  if (scrollRef.value) {
+    scrollRef.value.scrollIntoView({ block: "end", behavior: "smooth" });
+  }
+}
 </script>
 
 <template>
