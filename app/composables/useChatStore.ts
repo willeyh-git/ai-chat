@@ -1,5 +1,6 @@
 import Dexie from "dexie";
 import { ref, computed } from "vue";
+import { selectedModel } from "@/services/lmStudio";
 
 export interface Message {
   role: string;
@@ -53,6 +54,7 @@ export function useChatStore() {
   // expose reactive state and actions
   return {
     sessions: computed(() => sessions.value),
+    selectedModel,
     loadSessions,
     addMessage,
     createSession,

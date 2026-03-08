@@ -94,13 +94,13 @@ async function send() {
       <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
         <MessagesContainer :messages="currentMessages" :messagesEndRef="messagesEndRef" />
 
-        <InputArea
-          v-model="newMessage"
-          :loading="loading"
-          @send="send"
-          v-model:showModelSelector="showModelSelector"
-          @toggleModelSelector="showModelSelector = $event"
-        />
+<InputArea
+  v-model="newMessage"
+  :loading="loading"
+  v-model:showModelSelector="showModelSelector"
+  @send="send"
+  @toggleModelSelector="showModelSelector = !showModelSelector"
+/>
       </div>
 
       <div
