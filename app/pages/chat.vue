@@ -1,5 +1,5 @@
 <template>
-  <Chat :key="'chat-page-' + Date.now()" />;
+  <Chat />;
 </template>
 
 <script setup lang="ts">

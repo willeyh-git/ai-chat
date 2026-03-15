@@ -153,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { useChatStore, type ChatSession } from "#imports";
+import { useChatStore } from "@/composables/useChatStore";
 
 const props = withDefaults(
   defineProps<{
@@ -166,19 +166,19 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits<{ menuToggle: []; sessionSelect: [id: number] }>();
+const emit = defineEmits<{ menuToggle: []; sessionSelect: [id?: number | null] }>();
 
 function onMenuToggle() {
   emit("menuToggle");
 }
 
-function onSessionSelect(id: number) {
+function onSessionSelect(id?: number | null) {
   emit("sessionSelect", id);
 }
 
 async function handleNewChat() {
-  // Emit session select to trigger creation
-  await emit("sessionSelect", undefined as number | null); // Will be handled by parent
+  // Emit null to trigger creation of new session
+  await emit("sessionSelect", null);
 }
 
 async function handleActions(

@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { availableModels, selectedModel, fetchModels } from "@/services/lmStudio";
 import { useChatStore } from "@/composables/useChatStore";
-import { getChatCompletion } from "@/services/lmStudio";
+import { getChatCompletion, getChatCompletionStream } from "@/services/lmStudio";
 import MobileOverlay from "./MobileOverlay.vue";
 import ModelSelector from "./ModelSelector.vue";
 
-// Props removed – component now uses local refs and emits only
-
-const { sessions, createSession, addMessage, loadSessions } = useChatStore();
+const { sessions, createSession, addMessage, loadSessions, isStreaming, updateLastMessage } = useChatStore();
 const newMessage = ref<string>("");
 const loading = ref<boolean>(false);
 const selectedSessionId = ref<number | null>(null);
@@ -19,56 +17,65 @@ const keys = availableModels.value;
 const selectedModelKey = computed(() => selectedModel.value);
 
 const filteredModels = computed(() => {
-  const keys = availableModels.value;
-  if (!modelSearch.value || !modelsLoaded.value) return keys;
+  const availableKeys = availableModels.value;
+  if (!modelSearch.value || !modelsLoaded.value) return availableKeys;
   const search = modelSearch.value.toLowerCase().trim();
-  return keys.filter((key) => key.toLowerCase().includes(search));
+  return availableKeys.filter((key) => key.toLowerCase().includes(search));
 });
 
 const isCurrentlySelected = computed(() => {
   if (!selectedModelKey.value) return false;
   const selectedKey = filteredModels.value.find((k) => k === selectedModelKey.value);
-  return selectedKey;
+  return !!selectedKey;
 });
 
 const currentMessages = computed(() => {
   const session = sessions.value.find((s) => s.id === selectedSessionId.value);
-  return session ? session.messages : [];
+  return session ? [...session.messages] : [];
 });
 
 onMounted(async () => {
   await loadSessions();
-  if (sessions.value.length && selectedSessionId.value === null && sessions.value[0]) {
-    selectedSessionId.value = sessions.value[0].id === undefined ? null : sessions.value[0].id;
+  if (sessions.value.length > 0 && selectedSessionId.value === null) {
+    const firstSession = sessions.value[0];
+    selectedSessionId.value = firstSession.id ?? null;
   }
   await fetchModels();
   modelsLoaded.value = true;
 });
 
-async function updateSelectedSession(id: number) {
-  selectedSessionId.value = id;
+async function updateSelectedSession(id?: number | null) {
+  if (id === undefined || id === null) {
+    // Create a new session when no ID is provided
+    const newId = await createSession();
+    selectedSessionId.value = newId;
+  } else {
+    selectedSessionId.value = id;
+  }
 }
 
 function toggleMobileMenu() {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
 }
 
-async function send() {
+/**
+ * Send message using non-streaming API
+ */
+async function sendNonStreaming() {
   if (!newMessage.value) return;
+  
   loading.value = true;
   const sessionId = selectedSessionId.value ?? (await createSession());
 
   // Get current conversation history BEFORE adding new message
-  // This ensures we don't include the new message twice in our context
   const previousMessages = currentMessages.value; 
 
   await addMessage(sessionId, { role: "user", content: newMessage.value });
 
   // Build complete conversation history as context for the API call
-  // This includes all previous messages (both user and assistant) from this session + new message
   const messageHistory = [
-    ...previousMessages.map(m => ({ ...m })), // All previous messages (before this one)
-    { role: "user", content: newMessage.value },   // The new message we just added
+    ...previousMessages.map(m => ({ ...m })),
+    { role: "user", content: newMessage.value },
   ];
 
   try {
@@ -78,11 +85,64 @@ async function send() {
   } catch (e) {
     console.error("Chat API error", e);
     await addMessage(sessionId, { role: "assistant", content: "Error fetching response." });
+  } finally {
+    loading.value = false;
+    isMobileMenuOpen.value = false;
   }
-  selectedSessionId.value = sessionId;
-  newMessage.value = "";
-  loading.value = false;
-  isMobileMenuOpen.value = false;
+}
+
+/**
+ * Send message using streaming API
+ */
+async function sendStreaming() {
+  if (!newMessage.value) return;
+  
+  loading.value = true;
+  const sessionId = selectedSessionId.value ?? (await createSession());
+  isStreaming.value = true;
+
+  // Get current conversation history BEFORE adding new message
+  const previousMessages = currentMessages.value; 
+
+  await addMessage(sessionId, { role: "user", content: newMessage.value });
+
+  // Build complete conversation history as context for the API call
+  const messageHistory = [
+    ...previousMessages.map(m => ({ ...m })),
+    { role: "user", content: newMessage.value },
+  ];
+
+  try {
+    let assistantContent = "";
+    
+    // Add an empty assistant message placeholder before streaming starts
+    await addMessage(sessionId, { role: "assistant", content: "" });
+
+    for await (const chunk of getChatCompletionStream(messageHistory)) {
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) {
+        assistantContent += delta;
+        
+        // Update the last message in place instead of pushing new ones
+        await updateLastMessage(sessionId, assistantContent);
+      }
+    }
+    
+  } catch (e) {
+    console.error("Chat API streaming error", e);
+    await addMessage(sessionId, { role: "assistant", content: "Error fetching response." });
+  } finally {
+    loading.value = false;
+    isStreaming.value = false;
+    isMobileMenuOpen.value = false;
+  }
+}
+
+async function send() {
+  if (!newMessage.value) return;
+  
+  // Use streaming by default for better UX
+  await sendStreaming();
 }
 </script>
 
@@ -91,7 +151,7 @@ async function send() {
     <!-- Sidebar - Chat Sessions -->
     <SessionSidebar
       :sessions="sessions"
-      v-model:selectedSessionId="selectedSessionId"
+      v-model:selected-session-id="selectedSessionId"
       @menu-toggle="toggleMobileMenu"
       @session-select="updateSelectedSession"
     />
@@ -102,9 +162,9 @@ async function send() {
       <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
         <MessagesContainer :messages="currentMessages" />
         <InputArea
-          :loading="loading"
+          :loading="loading || isStreaming"
           v-model:message="newMessage"
-          v-model:showModelSelector="showModelSelector"
+          @toggle-model-selector="showModelSelector = !showModelSelector"
           @send="send"
         />
       </div>

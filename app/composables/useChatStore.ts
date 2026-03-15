@@ -1,11 +1,7 @@
 import Dexie from "dexie";
 import { ref, computed } from "vue";
+import type { Message } from '@/types/lmStudio';
 import { selectedModel } from "@/services/lmStudio";
-
-export interface Message {
-  role: string;
-  content: string;
-}
 
 export interface ChatSession {
   id?: number;
@@ -29,6 +25,8 @@ const db = new ChatDB();
 
 export function useChatStore() {
   const sessions = ref<ChatSession[]>([]);
+  // Track streaming state per session/message
+  const isStreaming = ref<boolean>(false);
 
   async function loadSessions() {
     sessions.value = await db.chats.toArray();
@@ -38,6 +36,26 @@ export function useChatStore() {
     const session = await db.chats.get(sessionId);
     if (!session) return;
     session.messages.push(message);
+    await db.chats.update(sessionId, { messages: session.messages });
+    await loadSessions();
+  }
+
+  async function updateMessageContent(sessionId: number, messageIndex: number, newContent: string) {
+    const session = await db.chats.get(sessionId);
+    if (!session || !Array.isArray(session.messages)) return;
+    
+    // Update the content in place
+    (session.messages as any)[messageIndex].content = newContent;
+    await db.chats.update(sessionId, { messages: session.messages });
+    await loadSessions();
+  }
+
+  async function updateLastMessage(sessionId: number, newContent: string) {
+    const session = await db.chats.get(sessionId);
+    if (!session || !Array.isArray(session.messages) || session.messages.length === 0) return;
+    
+    // Update the last message in place
+    (session.messages as any)[(session.messages as any).length - 1].content = newContent;
     await db.chats.update(sessionId, { messages: session.messages });
     await loadSessions();
   }
@@ -102,9 +120,11 @@ export function useChatStore() {
   // expose reactive state and actions
   return {
     sessions: computed(() => sessions.value),
+    isStreaming,
     selectedModel,
     loadSessions,
     addMessage,
+    updateLastMessage,
     createSession,
     updateTitle,
     deleteSession,

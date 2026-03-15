@@ -3,7 +3,7 @@ import { useChatStore } from "@/composables/useChatStore";
 
 const emit = defineEmits(["send"]);
 
-const { selectedModel } = useChatStore();
+const { selectedModel, isStreaming } = useChatStore();
 
 const props = defineProps<{
   loading: boolean;
@@ -27,18 +27,19 @@ function toggleModelSelector() {
         v-model="message"
         type="text"
         placeholder="Type a message..."
-        @keydown.enter.stop="!loading && handleSend()"
+        @keydown.enter.stop="!loading && !isStreaming && handleSend()"
         class="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-        :disabled="loading"
+        :disabled="loading || isStreaming"
         autocomplete="off"
       />
       <button
         @click="handleSend"
-        :disabled="loading || !message"
+        :disabled="loading || isStreaming || !message"
         class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
       >
+        <!-- Loading spinner -->
         <svg
-          v-if="loading"
+          v-if="loading || isStreaming"
           class="w-5 h-5 animate-spin"
           fill="none"
           stroke="currentColor"
@@ -58,6 +59,8 @@ function toggleModelSelector() {
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           ></path>
         </svg>
+        
+        <!-- Send icon -->
         <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
@@ -66,11 +69,22 @@ function toggleModelSelector() {
             d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
           />
         </svg>
-        Send
+        
+        <span class="font-medium">Send</span>
       </button>
+      
+      <!-- Streaming indicator -->
+      <div v-if="isStreaming" class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium flex items-center gap-1">
+        <svg class="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Streaming...
+      </div>
+
       <button
         @click="toggleModelSelector"
-        class="px-4 py-3 border rounded-lg transition-all duration-200 flex items-center gap-2"
+        class="px-4 py-3 border rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
+        :disabled="loading || isStreaming"
       >
         <svg
           class="w-5 h-5 text-gray-600 dark:text-gray-300"
