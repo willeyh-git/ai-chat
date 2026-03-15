@@ -7,8 +7,8 @@ const props = defineProps<{
 }>();
 
 const isOpen = props.showModelSelector;
-const searchQuery = ref("");
-const modelSearchQuery = ref("");
+const searchQuery = ref<string>("");
+const modelSearchQuery = ref<string>("");
 const emit = defineEmits<{
   select: [model: string];
   "update:model-search": [query: string];

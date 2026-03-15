@@ -6,13 +6,13 @@ import { getChatCompletion } from "@/services/lmStudio";
 // Props removed – component now uses local refs and emits only
 
 const { sessions, createSession, addMessage, loadSessions } = useChatStore();
-const newMessage = ref("");
-const loading = ref(false);
+const newMessage = ref<string>("");
+const loading = ref<boolean>(false);
 const selectedSessionId = ref<number | null>(null);
-const isMobileMenuOpen = ref(false);
-const showModelSelector = ref(false);
-const modelSearch = ref("");
-const modelsLoaded = ref(false);
+const isMobileMenuOpen = ref<boolean>(false);
+const showModelSelector = ref<boolean>(false);
+const modelSearch = ref<string>("");
+const modelsLoaded = ref<boolean>(false);
 const keys = availableModels.value;
 const selectedModelKey = computed(() => selectedModel.value);
 
