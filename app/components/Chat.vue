@@ -134,6 +134,7 @@ async function send() {
         }
       "
       @update:model-search="modelSearch = $event"
+      @close="showModelSelector = false"
     >
     </ModelSelector>
   </div>

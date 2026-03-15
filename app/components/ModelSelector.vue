@@ -13,6 +13,7 @@ const emit = defineEmits<{
   select: [model: string];
   "update:model-search": [query: string];
   update: [];
+  close: [];
 }>();
 
 const filteredModels = computed(() => {
@@ -34,16 +35,14 @@ function handleSearch() {
 function handleSelect(model: string) {
   emit("select", model);
 }
-
-
 </script>
 
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div @click="emit('update', '')" class="fixed inset-0 bg-black/50 transition-opacity" />
-<div
-  class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 max-h-[70vh] flex flex-col"
-  @click="emit('update', '')"
+    <div
+      class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 max-h-[70vh] flex flex-col"
+      @click="emit('update', '')"
     >
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-4">
@@ -132,7 +131,7 @@ function handleSelect(model: string) {
       </div>
       <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
         <button
-          @click="emit('update', '')"
+          @click="emit('close')"
           class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
         >
           Close
