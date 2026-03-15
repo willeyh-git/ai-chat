@@ -39,10 +39,10 @@ function handleSelect(model: string) {
 
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div @click="emit('update', '')" class="fixed inset-0 bg-black/50 transition-opacity" />
+    <div @click="emit('update')" class="fixed inset-0 bg-black/50 transition-opacity" />
     <div
       class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 max-h-[70vh] flex flex-col"
-      @click="emit('update', '')"
+      @click="emit('update')"
     >
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-4">
