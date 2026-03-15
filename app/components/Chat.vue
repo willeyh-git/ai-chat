@@ -9,7 +9,6 @@ const { sessions, createSession, addMessage, loadSessions } = useChatStore();
 const newMessage = ref("");
 const loading = ref(false);
 const selectedSessionId = ref<number | null>(null);
-const messagesEndRef = ref<HTMLElement>(null);
 const isMobileMenuOpen = ref(false);
 const showModelSelector = ref(false);
 const modelSearch = ref("");
@@ -91,7 +90,7 @@ async function send() {
 
     <main class="flex-1 flex flex-col h-full">
       <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
-        <MessagesContainer :messages="currentMessages" :messagesEndRef="messagesEndRef" />
+        <MessagesContainer :messages="currentMessages" />
         {{ modelsLoaded }}
         {{ showModelSelector }}
         <InputArea

@@ -4,7 +4,6 @@ import type { Message } from "@/composables/useChatStore";
 
 const props = defineProps<{
   messages: Message[];
-  messagesEndRef?: HTMLElement | null;
 }>();
 
 const scrollRef = ref<HTMLElement | null>(null);
