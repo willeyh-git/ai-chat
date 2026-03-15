@@ -32,10 +32,20 @@ export async function fetchModels() {
  */
 export function parseChunk(raw: string | null): ChatCompletionChunk | null {
   if (!raw || !raw.trim()) return null;
+  
+  // Strip SSE-style prefixes like "data: " before parsing JSON
+  const jsonStr = raw.replace(/^data:\s*/, '');
+  
+  // Skip non-JSON lines like "DONE", "[DONE]", etc.
+  if (jsonStr === 'DONE' || jsonStr === '[DONE]' || !/^\{/.test(jsonStr)) {
+    console.debug('Skipping non-JSON chunk:', jsonStr);
+    return null;
+  }
+  
   try {
-    return JSON.parse(raw) as ChatCompletionChunk;
+    return JSON.parse(jsonStr) as ChatCompletionChunk;
   } catch (e) {
-    console.error("Failed to parse chunk:", e);
+    console.error("Failed to parse chunk:", e, "Raw value:", raw);
     return null;
   }
 }

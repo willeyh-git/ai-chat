@@ -5,7 +5,7 @@ import { getChatCompletion, getChatCompletionStream } from "@/services/lmStudio"
 import MobileOverlay from "./MobileOverlay.vue";
 import ModelSelector from "./ModelSelector.vue";
 
-const { sessions, createSession, addMessage, loadSessions, isStreaming } = useChatStore();
+const { sessions, createSession, addMessage, loadSessions, isStreaming, updateLastMessage } = useChatStore();
 const newMessage = ref<string>("");
 const loading = ref<boolean>(false);
 const selectedSessionId = ref<number | null>(null);
@@ -115,14 +115,17 @@ async function sendStreaming() {
   try {
     let assistantContent = "";
     
+    // Add an empty assistant message placeholder before streaming starts
+    await addMessage(sessionId, { role: "assistant", content: "" });
+
     for await (const chunk of getChatCompletionStream(messageHistory)) {
       const delta = chunk.choices?.[0]?.delta?.content;
       if (delta) {
         assistantContent += delta;
+        
+        // Update the last message in place instead of pushing new ones
+        await updateLastMessage(sessionId, assistantContent);
       }
-      
-      // Update IndexedDB after each chunk to persist progress
-      await addMessage(sessionId, { role: "assistant", content: assistantContent });
     }
     
   } catch (e) {

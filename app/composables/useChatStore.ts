@@ -40,6 +40,26 @@ export function useChatStore() {
     await loadSessions();
   }
 
+  async function updateMessageContent(sessionId: number, messageIndex: number, newContent: string) {
+    const session = await db.chats.get(sessionId);
+    if (!session || !Array.isArray(session.messages)) return;
+    
+    // Update the content in place
+    (session.messages as any)[messageIndex].content = newContent;
+    await db.chats.update(sessionId, { messages: session.messages });
+    await loadSessions();
+  }
+
+  async function updateLastMessage(sessionId: number, newContent: string) {
+    const session = await db.chats.get(sessionId);
+    if (!session || !Array.isArray(session.messages) || session.messages.length === 0) return;
+    
+    // Update the last message in place
+    (session.messages as any)[(session.messages as any).length - 1].content = newContent;
+    await db.chats.update(sessionId, { messages: session.messages });
+    await loadSessions();
+  }
+
   async function createSession() {
     const newSession: ChatSession = {
       createdAt: Date.now(),
@@ -104,6 +124,7 @@ export function useChatStore() {
     selectedModel,
     loadSessions,
     addMessage,
+    updateLastMessage,
     createSession,
     updateTitle,
     deleteSession,
