@@ -62,27 +62,31 @@ export function useChatStore() {
   async function updateTitle(sessionId: number, newTitle: string) {
     const session = await db.chats.get(sessionId);
     if (!session) throw new Error(`Session ${sessionId} not found`);
-    
+
     // Update in database
     await db.chats.update(sessionId, { title: newTitle });
     // Update reactive state - cast to allow map/filter on Ref value
-    sessions.value = (sessions.value as ChatSession[]).map(s => s.id === sessionId ? { ...s, title: newTitle } : s);
+    sessions.value = (sessions.value as ChatSession[]).map((s) =>
+      s.id === sessionId ? { ...s, title: newTitle } : s,
+    );
   }
 
   async function deleteSession(sessionId: number) {
     const session = await db.chats.get(sessionId);
     if (!session) throw new Error(`Session ${sessionId} not found`);
-    
+
     // Remove from database
     await db.chats.delete(sessionId);
     // Update reactive state - cast to allow filter on Ref value
-    sessions.value = (sessions.value as ChatSession[]).filter(s => s.id !== sessionId);
+    sessions.value = (sessions.value as ChatSession[]).filter(
+      (s) => s.id !== sessionId,
+    );
   }
 
   async function duplicateSession(sessionId: number) {
     const original = await db.chats.get(sessionId);
     if (!original) throw new Error(`Session ${sessionId} not found`);
-    
+
     // Create copy with new ID and same content
     const newSession: ChatSession = {
       id: undefined, // Let DB auto-generate
