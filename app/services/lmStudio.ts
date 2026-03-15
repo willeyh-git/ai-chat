@@ -154,7 +154,10 @@ async function* streamWithTimeout(messages: Message[]): AsyncGenerator<ChatCompl
         
         if (!raw) continue;
         
-        const chunk = parseChunk(raw);
+        // Strip SSE-style prefixes like "data: " before parsing JSON
+        const jsonStr = raw.replace(/^data:\s*/, '');
+        
+        const chunk = parseChunk(jsonStr);
         if (chunk) {
           yield chunk;
         }
@@ -163,13 +166,12 @@ async function* streamWithTimeout(messages: Message[]): AsyncGenerator<ChatCompl
     
     // Drain remaining buffer
     if (buffer.trim()) {
-      const chunk = parseChunk(buffer);
+      const jsonStr = buffer.replace(/^data:\s*/, '');
+      const chunk = parseChunk(jsonStr);
       if (chunk) {
         yield chunk;
       }
     }
-  } catch (error) {
-    throw error; // Re-throw for retry logic to catch
   } finally {
     clearTimeout(timeoutId);
     controller.abort();
