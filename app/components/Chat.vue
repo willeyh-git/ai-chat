@@ -91,8 +91,6 @@ async function send() {
     <main class="flex-1 flex flex-col h-full">
       <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
         <MessagesContainer :messages="currentMessages" />
-        {{ modelsLoaded }}
-        {{ showModelSelector }}
         <InputArea
           :loading="loading"
           v-model:message="newMessage"
