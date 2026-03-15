@@ -153,7 +153,18 @@
 </template>
 
 <script setup lang="ts">
-import { useChatStore } from "#imports";
+import { useChatStore, type ChatSession } from "#imports";
+
+const props = withDefaults(
+  defineProps<{
+    sessions: readonly ChatSession[];
+    selectedSessionId: number | null;
+  }>(),
+  {
+    sessions: [],
+    selectedSessionId: null,
+  }
+);
 
 const emit = defineEmits<{ menuToggle: []; sessionSelect: [id: number] }>();
 

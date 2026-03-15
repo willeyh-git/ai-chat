@@ -2,6 +2,8 @@
 import { availableModels, selectedModel, fetchModels } from "@/services/lmStudio";
 import { useChatStore } from "@/composables/useChatStore";
 import { getChatCompletion } from "@/services/lmStudio";
+import MobileOverlay from "./MobileOverlay.vue";
+import ModelSelector from "./ModelSelector.vue";
 
 // Props removed – component now uses local refs and emits only
 
@@ -73,12 +75,7 @@ async function send() {
 
 <template>
   <div class="w-full h-screen bg-gray-100 dark:bg-gray-900 flex">
-    <MobileHeader
-      :showModelSelector="showModelSelector"
-      :isMobileMenuOpen="isMobileMenuOpen"
-      @toggle="toggleMobileMenu"
-    />
-
+    <!-- Sidebar - Chat Sessions -->
     <SessionSidebar
       :sessions="sessions"
       v-model:selectedSessionId="selectedSessionId"
