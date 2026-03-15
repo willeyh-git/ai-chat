@@ -153,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { useChatStore } from "@/composables/useChatStore";
+import { useChatStore, chatStore } from "@/composables/useChatStore";
 
 const props = withDefaults(
   defineProps<{
@@ -167,6 +167,9 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ menuToggle: []; sessionSelect: [id?: number | null] }>();
+
+// Use the singleton store instance for consistent state across components
+const chatStoreInstance = chatStore;
 
 function onMenuToggle() {
   emit("menuToggle");
@@ -194,7 +197,7 @@ async function handleActions(
 
     case "duplicate":
       try {
-        await emitStore.duplicateSession(sessionId);
+        await chatStoreInstance.duplicateSession(sessionId);
         onMenuToggle();
       } catch (e) {
         console.error("Failed to duplicate session", e);
@@ -204,7 +207,7 @@ async function handleActions(
     case "delete":
       if (confirm(`Delete session "${currentTitle || ""}"?`)) {
         try {
-          await emitStore.deleteSession(sessionId);
+          await chatStoreInstance.deleteSession(sessionId);
           onMenuToggle();
         } catch (e) {
           console.error("Failed to delete session", e);
@@ -214,5 +217,5 @@ async function handleActions(
   }
 }
 
-const emitStore = useChatStore();
+// Removed: const emitStore = useChatStore(); - using singleton instead
 </script>

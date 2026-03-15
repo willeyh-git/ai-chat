@@ -23,101 +23,95 @@ class ChatDB extends Dexie {
 
 const db = new ChatDB();
 
+// Singleton store instance - shared across the entire app
+const sessions = ref<ChatSession[]>([]);
+const isStreaming = ref<boolean>(false);
+
+async function loadSessions() {
+  sessions.value = await db.chats.toArray();
+}
+
+async function addMessage(sessionId: number, message: Message) {
+  const session = await db.chats.get(sessionId);
+  if (!session) return;
+  session.messages.push(message);
+  await db.chats.update(sessionId, { messages: session.messages });
+  await loadSessions();
+}
+
+async function updateMessageContent(sessionId: number, messageIndex: number, newContent: string) {
+  const session = await db.chats.get(sessionId);
+  if (!session || !Array.isArray(session.messages)) return;
+  
+  (session.messages as any)[messageIndex].content = newContent;
+  await db.chats.update(sessionId, { messages: session.messages });
+  await loadSessions();
+}
+
+async function updateLastMessage(sessionId: number, newContent: string) {
+  const session = await db.chats.get(sessionId);
+  if (!session || !Array.isArray(session.messages) || session.messages.length === 0) return;
+  
+  (session.messages as any)[(session.messages as any).length - 1].content = newContent;
+  await db.chats.update(sessionId, { messages: session.messages });
+  await loadSessions();
+}
+
+async function createSession() {
+  const newSession: ChatSession = {
+    createdAt: Date.now(),
+    title: generateDefaultTitle(),
+    messages: [],
+  };
+  const id = await db.chats.add(newSession);
+  sessions.value.push({ ...newSession, id });
+  return id;
+}
+
+function generateDefaultTitle(): string {
+  if (sessions.value.length === 0) {
+    return `Session at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+  const fallbackTime = new Date(sessions.value[0]?.createdAt ?? Date.now());
+  return `Session at ${fallbackTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+async function updateTitle(sessionId: number, newTitle: string) {
+  const session = await db.chats.get(sessionId);
+  if (!session) throw new Error(`Session ${sessionId} not found`);
+
+  await db.chats.update(sessionId, { title: newTitle });
+  sessions.value = sessions.value.map((s) =>
+    s.id === sessionId ? { ...s, title: newTitle } : s,
+  );
+}
+
+async function deleteSession(sessionId: number) {
+  const session = await db.chats.get(sessionId);
+  if (!session) throw new Error(`Session ${sessionId} not found`);
+
+  await db.chats.delete(sessionId);
+  sessions.value = sessions.value.filter((s) => s.id !== sessionId);
+  await loadSessions();
+}
+
+async function duplicateSession(sessionId: number) {
+  const original = await db.chats.get(sessionId);
+  if (!original) throw new Error(`Session ${sessionId} not found`);
+
+  const newSession: ChatSession = {
+    id: undefined,
+    createdAt: Date.now(),
+    title: original.title + " (Copy)",
+    messages: JSON.parse(JSON.stringify(original.messages)),
+  };
+  const id = await db.chats.add(newSession);
+  sessions.value.push({ ...newSession, id });
+  return id;
+}
+
+// Export singleton store with reactive state and actions
 export function useChatStore() {
-  const sessions = ref<ChatSession[]>([]);
-  // Track streaming state per session/message
-  const isStreaming = ref<boolean>(false);
-
-  async function loadSessions() {
-    sessions.value = await db.chats.toArray();
-  }
-
-  async function addMessage(sessionId: number, message: Message) {
-    const session = await db.chats.get(sessionId);
-    if (!session) return;
-    session.messages.push(message);
-    await db.chats.update(sessionId, { messages: session.messages });
-    await loadSessions();
-  }
-
-  async function updateMessageContent(sessionId: number, messageIndex: number, newContent: string) {
-    const session = await db.chats.get(sessionId);
-    if (!session || !Array.isArray(session.messages)) return;
-    
-    // Update the content in place
-    (session.messages as any)[messageIndex].content = newContent;
-    await db.chats.update(sessionId, { messages: session.messages });
-    await loadSessions();
-  }
-
-  async function updateLastMessage(sessionId: number, newContent: string) {
-    const session = await db.chats.get(sessionId);
-    if (!session || !Array.isArray(session.messages) || session.messages.length === 0) return;
-    
-    // Update the last message in place
-    (session.messages as any)[(session.messages as any).length - 1].content = newContent;
-    await db.chats.update(sessionId, { messages: session.messages });
-    await loadSessions();
-  }
-
-  async function createSession() {
-    const newSession: ChatSession = {
-      createdAt: Date.now(),
-      title: generateDefaultTitle(),
-      messages: [],
-    };
-    const id = await db.chats.add(newSession);
-    await loadSessions();
-    return id;
-  }
-
-  function generateDefaultTitle(): string {
-    // Fallback to timestamp if no sessions exist yet
-    const fallbackTime = new Date(sessions.value[0]?.createdAt ?? Date.now());
-    return `Session at ${fallbackTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
-
-  async function updateTitle(sessionId: number, newTitle: string) {
-    const session = await db.chats.get(sessionId);
-    if (!session) throw new Error(`Session ${sessionId} not found`);
-
-    // Update in database
-    await db.chats.update(sessionId, { title: newTitle });
-    // Update reactive state - cast to allow map/filter on Ref value
-    sessions.value = (sessions.value as ChatSession[]).map((s) =>
-      s.id === sessionId ? { ...s, title: newTitle } : s,
-    );
-  }
-
-  async function deleteSession(sessionId: number) {
-    const session = await db.chats.get(sessionId);
-    if (!session) throw new Error(`Session ${sessionId} not found`);
-
-    // Remove from database
-    await db.chats.delete(sessionId);
-    // Update reactive state - cast to allow filter on Ref value
-    sessions.value = (sessions.value as ChatSession[]).filter(
-      (s) => s.id !== sessionId,
-    );
-  }
-
-  async function duplicateSession(sessionId: number) {
-    const original = await db.chats.get(sessionId);
-    if (!original) throw new Error(`Session ${sessionId} not found`);
-
-    // Create copy with new ID and same content
-    const newSession: ChatSession = {
-      id: undefined, // Let DB auto-generate
-      createdAt: Date.now(),
-      title: original.title + " (Copy)",
-      messages: JSON.parse(JSON.stringify(original.messages)),
-    };
-    const id = await db.chats.add(newSession);
-    await loadSessions();
-    return id;
-  }
-
-  // expose reactive state and actions
   return {
     sessions: computed(() => sessions.value),
     isStreaming,
@@ -129,5 +123,19 @@ export function useChatStore() {
     updateTitle,
     deleteSession,
     duplicateSession,
-  };
+  } as const;
 }
+
+// Also export the singleton directly for use in components that need direct access
+export const chatStore = {
+  sessions: computed(() => sessions.value),
+  isStreaming,
+  selectedModel,
+  loadSessions,
+  addMessage,
+  updateLastMessage,
+  createSession,
+  updateTitle,
+  deleteSession,
+  duplicateSession,
+};

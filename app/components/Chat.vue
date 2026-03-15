@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { availableModels, selectedModel, fetchModels } from "@/services/lmStudio";
-import { useChatStore } from "@/composables/useChatStore";
+import { useChatStore, chatStore } from "@/composables/useChatStore";
 import { getChatCompletion, getChatCompletionStream } from "@/services/lmStudio";
 import MobileOverlay from "./MobileOverlay.vue";
 import ModelSelector from "./ModelSelector.vue";
 
 const { sessions, createSession, addMessage, loadSessions, isStreaming, updateLastMessage } = useChatStore();
+const chatStoreInstance = chatStore;
 const newMessage = ref<string>("");
 const loading = ref<boolean>(false);
 const selectedSessionId = ref<number | null>(null);
