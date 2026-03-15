@@ -97,7 +97,7 @@ async function send() {
           :loading="loading"
           v-model:message="newMessage"
           v-model:showModelSelector="showModelSelector"
-          @handle-send="send"
+          @send="send"
         />
       </div>
 

@@ -8,8 +8,8 @@ const { selectedModel } = useChatStore();
 const props = defineProps<{
   loading: boolean;
 }>();
-const message = defineModel<string>({ default: "" });
-const showModelSelector = defineModel<boolean>({ default: false });
+const message = defineModel<string>("message", { default: "" });
+const showModelSelector = defineModel<boolean>("showModelSelector", { default: false });
 
 function handleSend() {
   emit("send", message.value);
