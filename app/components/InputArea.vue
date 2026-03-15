@@ -1,25 +1,22 @@
 <script setup lang="ts">
 import { useChatStore } from "@/composables/useChatStore";
 
-
-const emit = defineEmits(["send", "update"]);
+const emit = defineEmits(["send"]);
 
 const { selectedModel } = useChatStore();
 
-interface Props {
+const props = defineProps<{
   loading: boolean;
-  showModelSelector?: boolean;
-}
-
-const props = defineProps<Props>();
+}>();
 const message = defineModel<string>({ default: "" });
+const showModelSelector = defineModel<boolean>({ default: false });
 
 function handleSend() {
   emit("send", message.value);
 }
 
 function toggleModelSelector() {
-  emit("update", !props.showModelSelector);
+  showModelSelector.value = !showModelSelector.value;
 }
 </script>
 
