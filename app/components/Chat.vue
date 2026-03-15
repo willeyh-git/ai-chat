@@ -17,34 +17,41 @@ const keys = availableModels.value;
 const selectedModelKey = computed(() => selectedModel.value);
 
 const filteredModels = computed(() => {
-  const keys = availableModels.value;
-  if (!modelSearch.value || !modelsLoaded.value) return keys;
+  const availableKeys = availableModels.value;
+  if (!modelSearch.value || !modelsLoaded.value) return availableKeys;
   const search = modelSearch.value.toLowerCase().trim();
-  return keys.filter((key) => key.toLowerCase().includes(search));
+  return availableKeys.filter((key) => key.toLowerCase().includes(search));
 });
 
 const isCurrentlySelected = computed(() => {
   if (!selectedModelKey.value) return false;
   const selectedKey = filteredModels.value.find((k) => k === selectedModelKey.value);
-  return selectedKey;
+  return !!selectedKey;
 });
 
 const currentMessages = computed(() => {
   const session = sessions.value.find((s) => s.id === selectedSessionId.value);
-  return session ? session.messages : [];
+  return session ? [...session.messages] : [];
 });
 
 onMounted(async () => {
   await loadSessions();
-  if (sessions.value.length && selectedSessionId.value === null && sessions.value[0]) {
-    selectedSessionId.value = sessions.value[0].id === undefined ? null : sessions.value[0].id;
+  if (sessions.value.length > 0 && selectedSessionId.value === null) {
+    const firstSession = sessions.value[0];
+    selectedSessionId.value = firstSession.id ?? null;
   }
   await fetchModels();
   modelsLoaded.value = true;
 });
 
-async function updateSelectedSession(id: number) {
-  selectedSessionId.value = id;
+async function updateSelectedSession(id?: number | null) {
+  if (id === undefined || id === null) {
+    // Create a new session when no ID is provided
+    const newId = await createSession();
+    selectedSessionId.value = newId;
+  } else {
+    selectedSessionId.value = id;
+  }
 }
 
 function toggleMobileMenu() {
@@ -141,7 +148,7 @@ async function send() {
     <!-- Sidebar - Chat Sessions -->
     <SessionSidebar
       :sessions="sessions"
-      v-model:selectedSessionId="selectedSessionId"
+      v-model:selected-session-id="selectedSessionId"
       @menu-toggle="toggleMobileMenu"
       @session-select="updateSelectedSession"
     />
@@ -154,7 +161,7 @@ async function send() {
         <InputArea
           :loading="loading || isStreaming"
           v-model:message="newMessage"
-          v-model:showModelSelector="showModelSelector"
+          @toggle-model-selector="showModelSelector = !showModelSelector"
           @send="send"
         />
       </div>
