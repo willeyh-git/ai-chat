@@ -1,5 +1,6 @@
 import axios from "axios";
 import { ref } from "vue";
+import type { ChatCompletionChunk, Message } from '@/types/lmStudio';
 
 const API_URL = process.env.LM_STUDIO_API_URL || "http://192.168.68.128:1234/v1/chat/completions";
 const API_KEY = process.env.LM_STUDIO_API_KEY || "";
@@ -23,18 +24,41 @@ export async function fetchModels() {
   }
 }
 
-export async function getChatCompletion(messages: { role: string; content: string }[]) {
-  const response = await axios.post(
-    API_URL,
-    {
-      model: selectedModel.value,
-      messages,
+export async function* getChatCompletionStream(messages: { role: string; content: string }[]): AsyncGenerator<ChatCompletionChunk, any, any> {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_KEY}`,
     },
-    {
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-      },
-    },
-  );
-  return response.data;
+    body: JSON.stringify({ model: selectedModel.value, messages }),
+    signal,
+  });
+  if (!res.ok) throw new Error(`Request failed: ${res.statusText}`);
+
+  const reader = res.body!.getReader();
+  let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += new TextDecoder().decode(value, { stream: true });
+    // LM Studio sends JSON lines separated by \n
+    let lineEnd;
+    while ((lineEnd = buffer.indexOf("\n")) !== -1) {
+      const raw = buffer.slice(0, lineEnd).trim();
+      buffer = buffer.slice(lineEnd + 1);
+      if (!raw) continue;
+      try {
+        const chunk: ChatCompletionChunk = JSON.parse(raw) as ChatCompletionChunk // eslint-disable-line @typescript-eslint/no-explicit-any
+        yield chunk;
+      } catch (_) {}
+    }
+  }
+  // Drain remaining buffer
+  if (buffer.trim()) {
+    try { yield JSON.parse(buffer) as ChatCompletionChunk; } catch (_) {}
+  }
+  controller.abort();
 }
