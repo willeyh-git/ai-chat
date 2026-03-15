@@ -47,9 +47,9 @@ function handleSelect(model: string) {
       <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Select Model</h2>
-          <span class="text-xs text-gray-500 dark:text-gray-400"
-            >{{ filteredModels.length }} models</span
-          >
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            {{ filteredModels.length }} models
+          </span>
         </div>
         <div class="relative">
           <input
