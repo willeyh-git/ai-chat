@@ -30,8 +30,8 @@ export async function fetchModels() {
 /**
  * Parse a raw chunk string into ChatCompletionChunk or null
  */
-export function parseChunk(raw: string): ChatCompletionChunk | null {
-  if (!raw.trim()) return null;
+export function parseChunk(raw: string | null): ChatCompletionChunk | null {
+  if (!raw || !raw.trim()) return null;
   try {
     return JSON.parse(raw) as ChatCompletionChunk;
   } catch (e) {
