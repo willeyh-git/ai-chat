@@ -41,30 +41,74 @@ export function parseChunk(raw: string): ChatCompletionChunk | null {
 }
 
 /**
- * Get chat completion response (non-streaming)
+ * Get chat completion response (non-streaming) with retry logic
  */
 export async function getChatCompletion(messages: Message[]): Promise<ChatCompletionChunk> {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({ model: selectedModel.value, messages }),
-  });
+  const maxRetries = 3;
+  const baseDelayMs = 1000; // 1 second
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({ model: selectedModel.value, messages }),
+      });
 
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.statusText}`);
+      if (!res.ok) {
+        throw new Error(`Request failed: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      return data as ChatCompletionChunk;
+    } catch (error) {
+      // Last attempt or network error - don't retry on 4xx/5xx client errors
+      if (attempt === maxRetries || (error as Error).message.includes("Failed to fetch")) {
+        throw error;
+      }
+      
+      console.warn(`Attempt ${attempt + 1} failed, retrying in ${baseDelayMs * Math.pow(2, attempt)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, baseDelayMs * Math.pow(2, attempt)));
+    }
   }
-
-  const data = await res.json();
-  return data as ChatCompletionChunk;
+  
+  // Should never reach here, but TypeScript needs a return
+  throw new Error("Failed to get chat completion after multiple retries");
 }
 
 /**
- * Get chat completion stream (streaming with `stream: true`)
+ * Get chat completion stream (streaming with `stream: true`) with retry logic
  */
 export async function* getChatCompletionStream(messages: Message[]): AsyncGenerator<ChatCompletionChunk, void, unknown> {
+  const maxRetries = 3;
+  const baseDelayMs = 1000; // 1 second
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      yield* await streamWithTimeout(messages);
+      return; // Success, exit retry loop
+    } catch (error) {
+      // Last attempt or network error - don't retry on client errors
+      if (attempt === maxRetries || (error as Error).message.includes("Failed to fetch")) {
+        throw error;
+      }
+      
+      console.warn(`Stream attempt ${attempt + 1} failed, retrying in ${baseDelayMs * Math.pow(2, attempt)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, baseDelayMs * Math.pow(2, attempt)));
+    }
+  }
+  
+  // Should never reach here
+  throw new Error("Failed to stream chat completion after multiple retries");
+}
+
+/**
+ * Internal streaming function with timeout (used by retry logic)
+ */
+async function* streamWithTimeout(messages: Message[]): AsyncGenerator<ChatCompletionChunk, void, unknown> {
   const controller = new AbortController();
   let timeoutId: NodeJS.Timeout | undefined;
   const STREAM_TIMEOUT_MS = 60_000; // 60 seconds timeout for streaming
@@ -124,6 +168,8 @@ export async function* getChatCompletionStream(messages: Message[]): AsyncGenera
         yield chunk;
       }
     }
+  } catch (error) {
+    throw error; // Re-throw for retry logic to catch
   } finally {
     clearTimeout(timeoutId);
     controller.abort();
