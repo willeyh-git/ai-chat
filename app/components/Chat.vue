@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { availableModels, selectedModel, fetchModels } from "@/services/lmStudio";
 import { useChatStore } from "@/composables/useChatStore";
-import { getChatCompletion } from "@/services/lmStudio";
+import { getChatCompletion, getChatCompletionStream } from "@/services/lmStudio";
 import MobileOverlay from "./MobileOverlay.vue";
 import ModelSelector from "./ModelSelector.vue";
 
-// Props removed – component now uses local refs and emits only
-
-const { sessions, createSession, addMessage, loadSessions } = useChatStore();
+const { sessions, createSession, addMessage, loadSessions, isStreaming } = useChatStore();
 const newMessage = ref<string>("");
 const loading = ref<boolean>(false);
 const selectedSessionId = ref<number | null>(null);
@@ -53,22 +51,24 @@ function toggleMobileMenu() {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
 }
 
-async function send() {
+/**
+ * Send message using non-streaming API
+ */
+async function sendNonStreaming() {
   if (!newMessage.value) return;
+  
   loading.value = true;
   const sessionId = selectedSessionId.value ?? (await createSession());
 
   // Get current conversation history BEFORE adding new message
-  // This ensures we don't include the new message twice in our context
   const previousMessages = currentMessages.value; 
 
   await addMessage(sessionId, { role: "user", content: newMessage.value });
 
   // Build complete conversation history as context for the API call
-  // This includes all previous messages (both user and assistant) from this session + new message
   const messageHistory = [
-    ...previousMessages.map(m => ({ ...m })), // All previous messages (before this one)
-    { role: "user", content: newMessage.value },   // The new message we just added
+    ...previousMessages.map(m => ({ ...m })),
+    { role: "user", content: newMessage.value },
   ];
 
   try {
@@ -78,11 +78,61 @@ async function send() {
   } catch (e) {
     console.error("Chat API error", e);
     await addMessage(sessionId, { role: "assistant", content: "Error fetching response." });
+  } finally {
+    loading.value = false;
+    isMobileMenuOpen.value = false;
   }
-  selectedSessionId.value = sessionId;
-  newMessage.value = "";
-  loading.value = false;
-  isMobileMenuOpen.value = false;
+}
+
+/**
+ * Send message using streaming API
+ */
+async function sendStreaming() {
+  if (!newMessage.value) return;
+  
+  loading.value = true;
+  const sessionId = selectedSessionId.value ?? (await createSession());
+  isStreaming.value = true;
+
+  // Get current conversation history BEFORE adding new message
+  const previousMessages = currentMessages.value; 
+
+  await addMessage(sessionId, { role: "user", content: newMessage.value });
+
+  // Build complete conversation history as context for the API call
+  const messageHistory = [
+    ...previousMessages.map(m => ({ ...m })),
+    { role: "user", content: newMessage.value },
+  ];
+
+  try {
+    let assistantContent = "";
+    
+    for await (const chunk of getChatCompletionStream(messageHistory)) {
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) {
+        assistantContent += delta;
+      }
+      
+      // Update IndexedDB after each chunk to persist progress
+      await addMessage(sessionId, { role: "assistant", content: assistantContent });
+    }
+    
+  } catch (e) {
+    console.error("Chat API streaming error", e);
+    await addMessage(sessionId, { role: "assistant", content: "Error fetching response." });
+  } finally {
+    loading.value = false;
+    isStreaming.value = false;
+    isMobileMenuOpen.value = false;
+  }
+}
+
+async function send() {
+  if (!newMessage.value) return;
+  
+  // Use streaming by default for better UX
+  await sendStreaming();
 }
 </script>
 
@@ -102,7 +152,7 @@ async function send() {
       <div v-if="selectedSessionId !== null" class="flex flex-col h-full overflow-hidden">
         <MessagesContainer :messages="currentMessages" />
         <InputArea
-          :loading="loading"
+          :loading="loading || isStreaming"
           v-model:message="newMessage"
           v-model:showModelSelector="showModelSelector"
           @send="send"

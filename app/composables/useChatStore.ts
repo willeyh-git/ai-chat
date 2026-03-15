@@ -1,11 +1,7 @@
 import Dexie from "dexie";
 import { ref, computed } from "vue";
+import type { Message } from '@/types/lmStudio';
 import { selectedModel } from "@/services/lmStudio";
-
-export interface Message {
-  role: string;
-  content: string;
-}
 
 export interface ChatSession {
   id?: number;
@@ -29,6 +25,8 @@ const db = new ChatDB();
 
 export function useChatStore() {
   const sessions = ref<ChatSession[]>([]);
+  // Track streaming state per session/message
+  const isStreaming = ref<boolean>(false);
 
   async function loadSessions() {
     sessions.value = await db.chats.toArray();
@@ -102,6 +100,7 @@ export function useChatStore() {
   // expose reactive state and actions
   return {
     sessions: computed(() => sessions.value),
+    isStreaming,
     selectedModel,
     loadSessions,
     addMessage,
