@@ -57,9 +57,22 @@ async function send() {
   if (!newMessage.value) return;
   loading.value = true;
   const sessionId = selectedSessionId.value ?? (await createSession());
+
+  // Get current conversation history BEFORE adding new message
+  // This ensures we don't include the new message twice in our context
+  const previousMessages = currentMessages.value; 
+
   await addMessage(sessionId, { role: "user", content: newMessage.value });
+
+  // Build complete conversation history as context for the API call
+  // This includes all previous messages (both user and assistant) from this session + new message
+  const messageHistory = [
+    ...previousMessages.map(m => ({ ...m })), // All previous messages (before this one)
+    { role: "user", content: newMessage.value },   // The new message we just added
+  ];
+
   try {
-    const completion = await getChatCompletion([{ role: "user", content: newMessage.value }]);
+    const completion = await getChatCompletion(messageHistory);
     const assistantMsg = completion.choices?.[0]?.message || { role: "assistant", content: "" };
     await addMessage(sessionId, assistantMsg);
   } catch (e) {
