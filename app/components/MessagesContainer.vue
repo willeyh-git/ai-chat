@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { useTemplateRef, watch, onMounted } from "vue";
 import type { Message } from "@/composables/useChatStore";
 
 const props = defineProps<{
   messages: Message[];
 }>();
 
-const scrollRef = ref<HTMLElement | null>(null);
+const scrollRef = useTemplateRef<HTMLElement | null>("scrollRef");
 let isScrolled = false;
 
 // Scroll to bottom on initial mount
