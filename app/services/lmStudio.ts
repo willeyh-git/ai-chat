@@ -66,57 +66,66 @@ export async function getChatCompletion(messages: Message[]): Promise<ChatComple
  */
 export async function* getChatCompletionStream(messages: Message[]): AsyncGenerator<ChatCompletionChunk, void, unknown> {
   const controller = new AbortController();
-  const signal = controller.signal;
+  let timeoutId: NodeJS.Timeout | undefined;
+  const STREAM_TIMEOUT_MS = 60_000; // 60 seconds timeout for streaming
   
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({ 
-      model: selectedModel.value, 
-      messages,
-      stream: true // Required for streaming per LM Studio spec
-    }),
-    signal,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Request failed: ${res.statusText}`);
-  }
-
-  const reader = res.body!.getReader();
-  let buffer = "";
-  
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
+  try {
+    // Set timeout to abort after 60 seconds of inactivity
+    timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
     
-    buffer += new TextDecoder().decode(value);
+    const signal = controller.signal;
     
-    // LM Studio sends JSON lines separated by \n
-    let lineEnd;
-    while ((lineEnd = buffer.indexOf("\n")) !== -1) {
-      const raw = buffer.slice(0, lineEnd).trim();
-      buffer = buffer.slice(lineEnd + 1);
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({ 
+        model: selectedModel.value, 
+        messages,
+        stream: true // Required for streaming per LM Studio spec
+      }),
+      signal,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Request failed: ${res.statusText}`);
+    }
+
+    const reader = res.body!.getReader();
+    let buffer = "";
+    
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
       
-      if (!raw) continue;
+      buffer += new TextDecoder().decode(value);
       
-      const chunk = parseChunk(raw);
+      // LM Studio sends JSON lines separated by \n
+      let lineEnd;
+      while ((lineEnd = buffer.indexOf("\n")) !== -1) {
+        const raw = buffer.slice(0, lineEnd).trim();
+        buffer = buffer.slice(lineEnd + 1);
+        
+        if (!raw) continue;
+        
+        const chunk = parseChunk(raw);
+        if (chunk) {
+          yield chunk;
+        }
+      }
+    }
+    
+    // Drain remaining buffer
+    if (buffer.trim()) {
+      const chunk = parseChunk(buffer);
       if (chunk) {
         yield chunk;
       }
     }
+  } finally {
+    clearTimeout(timeoutId);
+    controller.abort();
   }
-  
-  // Drain remaining buffer
-  if (buffer.trim()) {
-    const chunk = parseChunk(buffer);
-    if (chunk) {
-      yield chunk;
-    }
-  }
-  
-  controller.abort();
 }
